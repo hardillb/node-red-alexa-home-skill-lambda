@@ -62,8 +62,7 @@ function discover(event, context) {
         }).on('error', function(error){
             log('Discovery',"error: " + error);
             //other error
-
-
+            
             context.fail(error);
         });
     }
@@ -141,15 +140,9 @@ function command(event, context) {
         }
 
         
-    }).on('errror', function(){
-        header.name="TargetOfflineError"
-        var  response = {
-            header: header,
-            payload: {
-            }
-        }
-        log("Command",response);
-        context.fail(response);
+    }).on('errror', function(error){
+        log("Command",error);
+        context.fail(error);
     });
 
 }
