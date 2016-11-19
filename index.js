@@ -1,17 +1,17 @@
 var request = require('request');
 
-exports.handler = function(event, context) {
+exports.handler = function(event, context, callback) {
     log("Entry", event);
     if (event.header.namespace === 'Alexa.ConnectedHome.Discovery') {
-        discover(event, context);
+        discover(event, context, callback);
     } else if (event.header.namespace === 'Alexa.ConnectedHome.Control') {
-        command(event,context)
+        command(event,context, callback)
     } else if (event.header.namespace === 'Alexa.ConnectedHome.System') {
-        system(event,context);
+        system(event,context, callback);
     }
 };
 
-function discover(event, context) {
+function discover(event, context, callback) {
     log("Discover", event);
     if (event.header.name === 'DiscoverAppliancesRequest') {
         var message_id = event.header.messageId;
@@ -43,7 +43,8 @@ function discover(event, context) {
 
                 log('Discovery', response);
 
-                context.succeed(response);
+                //context.succeed(response);
+                callback(null,response);
             } else if (response.statusCode == 401) {
                 log('Discovery', "Auth failure");
                 var response = {
@@ -56,19 +57,21 @@ function discover(event, context) {
                     payload:{}
                 };
     
-                context.succeed(response);
+                //context.succeed(response);
+                callback(null,response);
             }
 
         }).on('error', function(error){
             log('Discovery',"error: " + error);
             //other error
             
-            context.fail(error);
+            //context.fail(error);
+            callback(error, null);
         });
     }
 }
 
-function command(event, context) {
+function command(event, context, callback) {
     var device_id = event.payload.appliance.applianceId;
     var message_id = event.header.messageId;
     var oauth_id = event.payload.accessToken;
@@ -123,7 +126,8 @@ function command(event, context) {
                 payload: {
                 }
             }
-            context.succeed(response);
+            //context.succeed(response);
+            callback(null, response);
         } else if (resp.statusCode === 401) {
             log('command', "Auth failure");
             var response = {
@@ -136,18 +140,86 @@ function command(event, context) {
                 payload:{}
             };
     
-            context.succeed(response);
+            //context.succeed(response);
+            callback(null,response);
+        } else if (resp.statusCode === 404) {
+            //device not found
+            log('command', "Not Found");
+            var response = {
+                header:{
+                    messageId: message_id,
+                    namespace: "Alexa.ConnectedHome.Control",
+                    name: "NoSuchTargetError",
+                    payloadVersion: "2"
+                },
+                payload:{}
+            };
+    
+            //context.succeed(response);
+            callback(null,response);
+        } else if (resp.statusCode === 416) {
+            //out of range
+            //need to return ranges
+            var range = JSON.parse(data);
+            log('command', "Out of Range");
+            var response = {
+                header:{
+                    messageId: message_id,
+                    namespace: "Alexa.ConnectedHome.Control",
+                    name: "ValueOutOfRangeError",
+                    payloadVersion: "2"
+                },
+                payload:{
+                    minimumValue: range.min,
+                    maximumValue: range.max
+                }
+            };
+    
+            //context.succeed(response);
+            callback(null,response);
+        } else if (resp.statusCode === 503) {
+            //service unavailable
+            log('command', "Rejected");
+            var response = {
+                header:{
+                    messageId: message_id,
+                    namespace: "Alexa.ConnectedHome.Control",
+                    name: "TargetHardwareMalfunctionError",
+                    payloadVersion: "2"
+                },
+                payload:{}
+            };
+    
+            //context.succeed(response);
+            callback(null,response);
+
+        } else if (resp.statusCode === 504) {
+            //service timed out
+            log('command', "Timed out");
+            var response = {
+                header:{
+                    messageId: message_id,
+                    namespace: "Alexa.ConnectedHome.Control",
+                    name: "TargetOfflineError",
+                    payloadVersion: "2"
+                },
+                payload:{}
+            };
+    
+            //context.succeed(response);
+            callback(null,response);
         }
 
         
     }).on('errror', function(error){
         log("Command",error);
-        context.fail(error);
+        //context.fail(error);
+        callback(error,null);
     });
 
 }
 
-function system(event, context) {
+function system(event, context, callback) {
     var message_id = event.header.messageId;
 
     var response = {
@@ -162,7 +234,8 @@ function system(event, context) {
             "isHealthy": true
         }
     };
-    context.succeed(response);
+    //context.succeed(response);
+    callback(null, response);
 }
 
 function log(title, msg) {
