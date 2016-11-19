@@ -126,6 +126,15 @@ function command(event, context, callback) {
                 payload: {
                 }
             }
+            var extra;
+            try {
+                extra = JSON.parse(data);
+            } catch (err) {
+
+            }
+            if (extra) {
+                response.payload = extra;
+            }
             //context.succeed(response);
             callback(null, response);
         } else if (resp.statusCode === 401) {
@@ -160,7 +169,6 @@ function command(event, context, callback) {
         } else if (resp.statusCode === 416) {
             //out of range
             //need to return ranges
-            var range = JSON.parse(data);
             log('command', "Out of Range");
             var response = {
                 header:{
@@ -170,8 +178,8 @@ function command(event, context, callback) {
                     payloadVersion: "2"
                 },
                 payload:{
-                    minimumValue: range.min,
-                    maximumValue: range.max
+                    minimumValue: data.min,
+                    maximumValue: data.max
                 }
             };
     
