@@ -123,18 +123,10 @@ function command(event, context, callback) {
         if (resp.statusCode === 200) {
             var response = {
                 header: header,
-                payload: {
-                }
-            }
-            var extra;
-            try {
-                extra = JSON.parse(data);
-            } catch (err) {
-
-            }
-            if (extra) {
-                response.payload = extra;
-            }
+                payload: data
+            };
+            
+            log('command', JSON.stringify(response));
             //context.succeed(response);
             callback(null, response);
         } else if (resp.statusCode === 401) {
