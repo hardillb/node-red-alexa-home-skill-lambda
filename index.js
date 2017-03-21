@@ -5,21 +5,23 @@ exports.handler = function(event, context, callback) {
     if (event.header.namespace === 'Alexa.ConnectedHome.Discovery') {
         discover(event, context, callback);
     } else if (event.header.namespace === 'Alexa.ConnectedHome.Control') {
-        command(event,context, callback)
+        command(event, context, callback);
+    } else if (event.header.namespace === 'Alexa.ConnectedHome.Query') {
+        command(event, context, callback)
     } else if (event.header.namespace === 'Alexa.ConnectedHome.System') {
-        system(event,context, callback);
+        system(event, context, callback);
     }
 };
 
 function discover(event, context, callback) {
     log("Discover", event);
     if (event.header.name === 'DiscoverAppliancesRequest') {
-        var message_id = event.header.messageId;
+        var message_id = createMessageId();
         var oauth_id = event.payload.accessToken;
         
 
         //http request to the database
-        request.get('https://alexa-node-red.eu-gb.mybluemix.net/api/v1/devices',{
+        request.get('https://alexa-node-red.bm.hardill.me.uk/api/v1/devices',{
             auth: {
                 'bearer': oauth_id
             },
@@ -73,7 +75,7 @@ function discover(event, context, callback) {
 
 function command(event, context, callback) {
     var device_id = event.payload.appliance.applianceId;
-    var message_id = event.header.messageId;
+    var message_id = createMessageId();
     var oauth_id = event.payload.accessToken;
 
     var command = event.header.name;
@@ -110,6 +112,21 @@ function command(event, context, callback) {
             break;
         case 'DecrementPercentageRequest':
             header.name = "DecrementPercentageConfirmation";
+            break;
+        case 'GetTemperatureReadingRequest':
+            header.name = "GetTemperatureReadingResponse";
+            header.namespace = "Alexa.ConnectedHome.Query";
+            break;
+        case 'GetTargetTemperatureRequest':
+            header.name = "GetTemperatureReadingResponse";
+            header.namespace ="Alexa.ConnectedHome.Query";
+            break;
+        case 'SetLockStateRequest':
+            header.name = "SetLockStateConfirmation"
+            break;
+        case 'GetLockStateRequest':
+            header.name = "GetLockStateResponse";
+            header.namespace ="Alexa.ConnectedHome.Query";
             break;
     }
 
@@ -220,7 +237,7 @@ function command(event, context, callback) {
 }
 
 function system(event, context, callback) {
-    var message_id = event.header.messageId;
+    var message_id = createMessageId();
 
     var response = {
         "header": {
@@ -236,6 +253,19 @@ function system(event, context, callback) {
     };
     //context.succeed(response);
     callback(null, response);
+}
+
+function createMessageId() {
+    var d = new Date().getTime();
+
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, 
+        function(c){
+            var r = (d + Math.random()*16)%16 | 0;
+            d = Math.floor(d/16);
+            return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+        });
+
+    return uuid;
 }
 
 function log(title, msg) {
