@@ -49,14 +49,26 @@ function discover(event, context, callback) {
                 callback(null,response);
             } else if (response.statusCode == 401) {
                 log('Discovery', "Auth failure");
+                // var response = {
+                //     header:{
+                //         messageId: message_id,
+                //         namespace: "Alexa.ConnectedHome.Control",
+                //         name: "ExpiredAccessTokenError",
+                //         payloadVersion: "2"
+                //     },
+                //     payload:{}
+                // };
+                // The docs says you can't return errors from Discover!
                 var response = {
                     header:{
                         messageId: message_id,
-                        namespace: "Alexa.ConnectedHome.Control",
-                        name: "ExpiredAccessTokenError",
+                        name: "DiscoverAppliancesResponse",
+                        namespace: "Alexa.ConnectedHome.Discovery",
                         payloadVersion: "2"
                     },
-                    payload:{}
+                    payload: {
+                        discoveredAppliances: []
+                    }
                 };
     
                 //context.succeed(response);
@@ -118,7 +130,7 @@ function command(event, context, callback) {
             header.namespace = "Alexa.ConnectedHome.Query";
             break;
         case 'GetTargetTemperatureRequest':
-            header.name = "GetTemperatureReadingResponse";
+            header.name = "GetTargetTemperatureResponse";
             header.namespace ="Alexa.ConnectedHome.Query";
             break;
         case 'SetLockStateRequest':
@@ -128,6 +140,19 @@ function command(event, context, callback) {
             header.name = "GetLockStateResponse";
             header.namespace ="Alexa.ConnectedHome.Query";
             break;
+        case 'SetColorRequest':
+            header.name = "SetColorConfirmation";
+            break;
+        case 'SetColorTemperatureRequest':
+            header.name = "SetColorTemperatureConfirmation";
+            break;
+        case 'IncrementColorTemperatureRequest':
+            header.name = "IncrementColorTemperatureConfirmation";
+            break;
+        case 'DecrementColorTemperatureRequest':
+            header.name = "DecrementColorTemperatureConfirmation";
+            break;
+
     }
 
     request.post('https://alexa-node-red.eu-gb.mybluemix.net/api/v1/command',{
@@ -137,6 +162,11 @@ function command(event, context, callback) {
         },
         timeout: 2000
     }, function(err, resp, data){
+        log("Command Response", data);
+        if(err) {
+            log("command error", err);
+        }
+        
         if (resp.statusCode === 200) {
             var response = {
                 header: header,
@@ -150,10 +180,10 @@ function command(event, context, callback) {
             log('command', "Auth failure");
             var response = {
                 header:{
-                    messageId: message_id,
                     namespace: "Alexa.ConnectedHome.Control",
                     name: "ExpiredAccessTokenError",
-                    payloadVersion: "2"
+                    payloadVersion: "2",
+                    messageId: message_id
                 },
                 payload:{}
             };
