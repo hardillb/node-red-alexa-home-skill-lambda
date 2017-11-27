@@ -5,11 +5,11 @@ exports.handler = function(event, context, callback) {
     if (event.header.namespace === 'Alexa.ConnectedHome.Discovery') {
         discover(event, context, callback);
     } else if (event.header.namespace === 'Alexa.ConnectedHome.Control') {
-        command(event, context, callback);
+        command(event,context, callback)
     } else if (event.header.namespace === 'Alexa.ConnectedHome.Query') {
         command(event, context, callback)
     } else if (event.header.namespace === 'Alexa.ConnectedHome.System') {
-        system(event, context, callback);
+        system(event,context, callback);
     }
 };
 
@@ -152,15 +152,14 @@ function command(event, context, callback) {
         case 'DecrementColorTemperatureRequest':
             header.name = "DecrementColorTemperatureConfirmation";
             break;
-
     }
 
-    request.post('https://alexa-node-red.eu-gb.mybluemix.net/api/v1/command',{
+    request.post('https://alexa-node-red.bm.hardill.me.uk/api/v1/command',{
         json: event,
         auth: {
             bearer: oauth_id
         },
-        timeout: 2000
+        timeout: 15000
     }, function(err, resp, data){
         log("Command Response", data);
         if(err) {
@@ -173,17 +172,16 @@ function command(event, context, callback) {
                 payload: data
             };
             
-            log('command', JSON.stringify(response));
             //context.succeed(response);
             callback(null, response);
         } else if (resp.statusCode === 401) {
             log('command', "Auth failure");
             var response = {
                 header:{
+                    messageId: message_id,
                     namespace: "Alexa.ConnectedHome.Control",
                     name: "ExpiredAccessTokenError",
-                    payloadVersion: "2",
-                    messageId: message_id
+                    payloadVersion: "2"
                 },
                 payload:{}
             };
@@ -209,6 +207,7 @@ function command(event, context, callback) {
             //out of range
             //need to return ranges
             log('command', "Out of Range");
+            
             var response = {
                 header:{
                     messageId: message_id,
@@ -297,6 +296,7 @@ function createMessageId() {
 
     return uuid;
 }
+
 
 function log(title, msg) {
     console.log('*************** ' + title + ' *************');
